@@ -137,8 +137,8 @@ function getOneItemPrice(name) {
     });
 }
 
-function saveJson(data, name, param) {
-    request({ url: 'https://api.myjson.com/bins/3d1jx', method: 'PUT', json: { item: name, time: moment().format('MMMM Do YYYY, h:mm:ss a'), price: param.subtotal * 0.01 + '$', tobuy: data, param: param } }, function () { })
+function saveJson(name, param, tobuy) {
+  request({ url: 'https://api.myjson.com/bins/9elit', method: 'PUT', json: { item: name, time: moment().format('MMMM Do YYYY, h:mm:ss a'), price: param.subtotal * 0.01 + 'e', tobuy: tobuy, param: param } }, function () { })
 }
 
 function isEmpty(obj) {
