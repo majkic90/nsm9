@@ -10,6 +10,7 @@ var asyncForEach = require('async-foreach').forEach;
 var cheerio = require('cheerio');
 var fs = require('fs');
 var jsonfile = require('jsonfile');
+var _ = require('underscore');
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -84,15 +85,13 @@ function getitemsPrice() {
             $(".normal_price").not('.market_table_value').each(function (index) {
                 knifes[index].price = (parseInt($(this).text().substr(1)) * euro).toFixed(2)
             });
-            saveStatus({ items: knifes });
             for (var i = 0; i < knifes.length; i++) {
                 for (var j = 0; j < allItemsFromServer.length; j++) {
                     if (knifes[i].item == allItemsFromServer[j].item) {
-                        saveStatus({ item: knifes[i].item });
-                        saveStatus({ price: knifes[i].price });
                         if (knifes[i].price <= allItemsFromServer[j].price) {
                             refOneItem = 4;
                             getOneItemPrice(knifes[i].item);
+                            console.log(knifes[i].item);
                         }
                     }
                 }
@@ -113,17 +112,18 @@ function getOneItemPrice(name) {
         url: "http://steamcommunity.com/market/listings/730/" + encodeURIComponent(name) + "/render?start=0&count=10&currency=3&language=english&format=json",
         json: true
     }, function (error, response, body) {
-        if (!error && response.statusCode === 200 && !isEmpty(body.listinginfo)) {
+        if (!error && response.statusCode === 200 && !_.isEmpty(body.listinginfo)) {
             var keys = Object.keys(body.listinginfo);
-            var param = {
-                listingid: body.listinginfo[keys[0]].listingid,
-                subtotal: body.listinginfo[keys[0]].converted_price_per_unit,
-                fee: body.listinginfo[keys[0]].converted_fee_per_unit,
-                total: body.listinginfo[keys[0]].converted_price_per_unit + body.listinginfo[keys[0]].converted_fee_per_unit
+            if (!isNaN(body.listinginfo[keys[0]].converted_price_per_unit)) {
+                var param = {
+                    listingid: body.listinginfo[keys[0]].listingid,
+                    subtotal: body.listinginfo[keys[0]].converted_price_per_unit,
+                    fee: body.listinginfo[keys[0]].converted_fee_per_unit,
+                    total: parseInt(body.listinginfo[keys[0]].converted_price_per_unit) + parseInt(body.listinginfo[keys[0]].converted_fee_per_unit)
+                }
+                    saveStatus(param);
+                    saveJson(name, param, true);
             }
-            saveStatus({ param: param });
-            io.emit('buyItem', { param });
-            saveJson(true, name, param);
         }
         if (isEmpty(body.listinginfo) && refOneItem >= 0) {
             refOneItem--;
@@ -132,7 +132,6 @@ function getOneItemPrice(name) {
             }, 1000);
         }
         if (error) {
-            saveStatus({ error: error });
             console.log(error);
         }
     });
@@ -150,7 +149,9 @@ function isEmpty(obj) {
     return true;
 }
 
-function saveStatus(data) {
+function saveStatus(param) {
+    console.log(param);
+    io.emit('buyItem', param);
 }
 
 http.listen(PORT, function () {
